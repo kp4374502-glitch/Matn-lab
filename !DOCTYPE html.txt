@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuldeep Pandey Math Lab</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top, #1a1a1a, #000);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* Container */
+.container {
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+/* Screens */
+.screen { display: none; }
+.active { display: block; }
+
+/* Buttons */
+button {
+  width: 100%;
+  padding: 14px;
+  margin: 10px 0;
+  font-size: 18px;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.2);
+  background: transparent;
+  color: white;
+}
+
+button:active { transform: scale(0.9); }
+
+/* Quiz */
+#question {
+  font-size: 30px;
+  margin: 20px 0;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.correct { background: #00c853 !important; }
+.wrong { background: #d50000 !important; }
+
+.timer { margin: 10px; }
+
+#result { margin-top: 10px; }
+
+/* Title */
+.title {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HOME -->
+  <div id="home" class="screen active">
+    <div class="title">Kuldeep Pandey's Math Lab</div>
+    <button onclick="startGame('add')">➕ Addition</button>
+    <button onclick="startGame('mul')">✖️ Multiplication</button>
+    <button onclick="startGame('sub')">➖ Subtraction</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz" class="screen">
+    <button onclick="goHome()">🏠 Home</button>
+    <div class="timer">Time: <span id="time">15</span>s</div>
+    <div id="question"></div>
+
+    <div class="options" id="options"></div>
+
+    <div id="result"></div>
+    <button id="nextBtn" onclick="generateQuestion()" style="display:none;">Next ➜</button>
+  </div>
+
+</div>
+
+<script>
+let correctAnswer;
+let timer;
+let timeLeft;
+let mode = "add";
+
+function goHome() {
+  clearInterval(timer);
+  showScreen("home");
+}
+
+function startGame(selectedMode) {
+  mode = selectedMode;
+  showScreen("quiz");
+  generateQuestion();
+}
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function startTimer() {
+  clearInterval(timer);
+
+  timeLeft = (mode === "mul") ? 30 : 15;
+  let timeEl = document.getElementById("time");
+
+  timeEl.innerText = timeLeft;
+
+  timer = setInterval(() => {
+    timeLeft--;
+    timeEl.innerText = timeLeft;
+
+    if (timeLeft === 0) {
+      clearInterval(timer);
+      showCorrectOnTimeout();
+    }
+  }, 1000);
+}
+
+function rand2Digit() {
+  return Math.floor(Math.random() * 90) + 10;
+}
+
+function generateQuestion() {
+  document.getElementById("result").innerText = "";
+  document.getElementById("nextBtn").style.display = "none";
+
+  let a, b;
+
+  if (mode === "mul") {
+    a = Math.floor(Math.random() * 100);
+    b = Math.floor(Math.random() * 30) + 1;
+  } else {
+    a = rand2Digit();
+    b = rand2Digit();
+  }
+
+  if (mode === "add") {
+    correctAnswer = a + b;
+    document.getElementById("question").innerText = `${a} + ${b}`;
+  } else if (mode === "sub") {
+    if (a < b) [a, b] = [b, a];
+    correctAnswer = a - b;
+    document.getElementById("question").innerText = `${a} - ${b}`;
+  } else {
+    correctAnswer = a * b;
+    document.getElementById("question").innerText = `${a} × ${b}`;
+  }
+
+  let options = [correctAnswer];
+
+  while (options.length < 4) {
+    let wrong = correctAnswer + Math.floor(Math.random() * 50 - 25);
+    if (!options.includes(wrong) && wrong >= 0) {
+      options.push(wrong);
+    }
+  }
+
+  options.sort(() => Math.random() - 0.5);
+
+  let optionsDiv = document.getElementById("options");
+  optionsDiv.innerHTML = "";
+
+  options.forEach(opt => {
+    let btn = document.createElement("button");
+    btn.innerText = opt;
+    btn.onclick = () => checkAnswer(btn, opt);
+    optionsDiv.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+function checkAnswer(button, selected) {
+  clearInterval(timer);
+
+  let buttons = document.querySelectorAll(".options button");
+  buttons.forEach(btn => btn.disabled = true);
+
+  if (selected === correctAnswer) {
+    button.classList.add("correct");
+  } else {
+    button.classList.add("wrong");
+    buttons.forEach(btn => {
+      if (parseInt(btn.innerText) === correctAnswer) {
+        btn.classList.add("correct");
+      }
+    });
+  }
+
+  document.getElementById("nextBtn").style.display = "block";
+}
+
+function showCorrectOnTimeout() {
+  let buttons = document.querySelectorAll(".options button");
+
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    if (parseInt(btn.innerText) === correctAnswer) {
+      btn.classList.add("correct");
+    }
+  });
+
+  document.getElementById("nextBtn").style.display = "block";
+}
+
+// Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
